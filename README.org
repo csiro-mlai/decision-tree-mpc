@@ -1,0 +1,84 @@
+#+TITLE: Decision Tree Training with Multi-Party Computation
+
+Small set of scripts for training a decision tree on the [[https://archive.ics.uci.edu/ml/datasets/adult][Adult Income
+Dataset]] using [[https://github.com/data61/MP-SPDZ/][MP-SPDZ]]. This uses the algorithm by [[https://arxiv.org/abs/2112.12906][Hamada et al.]]
+
+** Installation (with Docker)
+
+Run the following  from this directory to build a Docker container:
+
+: $ docker build .
+
+At the of the installation, some examples are run automatically.
+
+** Running locally
+
+After setting everything up, you can use this script to run the
+computation:
+
+: $ ./run-local.sh <protocol> <height> <n_threads>
+
+The options are as follows:
+
+- =protocol= is one of =emul= (emulation), =sh2= (semi-honest
+  two-party computation) =sh3= (honest-majority semi-honest
+  three-party computation.
+- =height= is the height of the tree.
+- =n_threads= is the number of threads per party.
+
+For example,
+
+: $ ./run-local.sh emul 20 2
+
+creates a tree of height 20 with two threads in the emulation.
+
+** Running remotely
+
+You need to set up hosts that run SSH and have all higher TCP ports
+open between each other. The hosts have to run Linux with a glib not
+older than Ubuntu 22.04 (2.35). Honest-majority protocols require
+three hosts while dishonest-majority protocols require two.
+
+With Docker, you can run the following script to set up host names,
+user name and SSH RSA key. We do *NOT* recommend running it outside
+Docker because it might overwrite an existing RSA key file.
+
+: $ ./setup-remote.sh
+
+Without Docker, familiarise yourself with SSH configuration options
+and SSH keys. You can use =ssh_config= and the above script to find
+out the requirements. =HOSTS= has to contain the hostnames separated
+by whitespace.
+
+After setting up, you can the following using the same options as
+above:
+
+: $ ./run-remote.sh <protocol> <height> <n_threads>
+
+For example,
+
+: $ ./run-remote.sh sh3 10 1
+
+creates a tree of height 10 with one thread in semi-honest three-party
+computation.
+
+** Data format and scripts
+
+=prepare.py mixed= processes the dataset. The format is as follows:
+first the training set starting with the labels, then attribute by
+attribute, then the test set in the same order. Continuous attributes
+are output as such, the others are converted to one-hot binary
+labels. The scripts outputs the assignment of labels to attribute
+numbers.
+
+=download.sh= downloads the datasets from UCI repository.
+
+** Results
+
+We have achieved the following results for two and three colocated
+AWS =c5.9xlarge= instances with one semi-honest corruption:
+
+| Height | Accuracy | F1 score | Time 3PC    | Time 2PC (est.) |
+|--------+----------+----------+-------------+-----------------|
+|      5 |      85% |     0.62 | 62 seconds  | 7 hours         |
+|     10 |      86% |     0.66 | 124 seconds | 14 hours        |
